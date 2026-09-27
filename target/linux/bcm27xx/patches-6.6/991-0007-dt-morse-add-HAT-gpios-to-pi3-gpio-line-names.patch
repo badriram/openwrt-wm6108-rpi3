@@ -1,0 +1,52 @@
+Subject: ARM: dts: bcm2710: name the Morse HAT gpios on Pi 3 / Pi 3 B+
+
+The equivalent change for BCM2711 lives in 991-0005, but the Pi 3 device
+trees were never given these names. morse/scripts/chipreset.sh looks the
+reset line up with "gpioinfo --by-name MM_RESET" and aborts when it is
+absent, so chip reset never worked on a Pi 3.
+
+Pins match the Seeed WM6108 HAT wiring used by the wm6108-spi overlay:
+reset GPIO17, wake GPIO23, busy GPIO24.
+
+diff -urN a/arch/arm/boot/dts/broadcom/bcm2710-rpi-3-b.dts b/arch/arm/boot/dts/broadcom/bcm2710-rpi-3-b.dts
+--- a/arch/arm/boot/dts/broadcom/bcm2710-rpi-3-b.dts	2026-09-27 08:57:59.037018773 -0500
++++ b/arch/arm/boot/dts/broadcom/bcm2710-rpi-3-b.dts	2026-09-27 08:57:59.039577728 -0500
+@@ -46,14 +46,14 @@
+ 			  "GPIO14",
+ 			  "GPIO15",
+ 			  "GPIO16",
+-			  "GPIO17",
++			  "MM_RESET",
+ 			  "GPIO18",
+ 			  "GPIO19",
+ 			  "GPIO20",
+ 			  "GPIO21",
+ 			  "GPIO22",
+-			  "GPIO23",
+-			  "GPIO24",
++			  "MM_WAKE",
++			  "MM_BUSY",
+ 			  "GPIO25",
+ 			  "GPIO26",
+ 			  "GPIO27",
+diff -urN a/arch/arm/boot/dts/broadcom/bcm2710-rpi-3-b-plus.dts b/arch/arm/boot/dts/broadcom/bcm2710-rpi-3-b-plus.dts
+--- a/arch/arm/boot/dts/broadcom/bcm2710-rpi-3-b-plus.dts	2026-09-27 08:57:59.032860523 -0500
++++ b/arch/arm/boot/dts/broadcom/bcm2710-rpi-3-b-plus.dts	2026-09-27 08:57:59.035676530 -0500
+@@ -46,14 +46,14 @@
+ 			  "GPIO14",
+ 			  "GPIO15",
+ 			  "GPIO16",
+-			  "GPIO17",
++			  "MM_RESET",
+ 			  "GPIO18",
+ 			  "GPIO19",
+ 			  "GPIO20",
+ 			  "GPIO21",
+ 			  "GPIO22",
+-			  "GPIO23",
+-			  "GPIO24",
++			  "MM_WAKE",
++			  "MM_BUSY",
+ 			  "GPIO25",
+ 			  "GPIO26",
+ 			  "GPIO27",
