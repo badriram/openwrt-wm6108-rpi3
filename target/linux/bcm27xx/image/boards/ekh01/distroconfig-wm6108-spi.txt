@@ -1,0 +1,6 @@
+# NB arm_64bit is NOT set here: it is handled by bootcode.bin, which does not
+# process the 'include' directive, so it must go in config.txt itself.
+# See Build/boot-arm64 in the image Makefile.
+dtoverlay=wm6108-ps
+dtparam=spi=on
+dtoverlay=wm6108-spi

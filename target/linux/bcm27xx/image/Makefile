@@ -71,6 +71,40 @@ define Build/boot-ekh01
 
 endef
 
+define Build/boot-arm64
+	# arm_64bit is consumed by bootcode.bin, which does NOT process the
+	# 'include' directive -- so unlike everything else we set, it cannot live
+	# in distroconfig.txt and has to be written into config.txt itself.
+	# BCM2837 (Pi 3) defaults arm_64bit=0 and would look for a 32-bit
+	# kernel7.img instead of our aarch64 kernel8.img, and hang in the
+	# bootloader. BCM2711/BCM2712 already default to 1, hence Pi 4 is fine.
+	# HDMI: a KVM/capture device often does not assert hot-plug detect, and the
+	# Pi then leaves HDMI off entirely -- which looks identical to "dead board".
+	# Force output at a fixed 1080p60 rather than trusting EDID, so there is
+	# always a console to look at on a headless build.
+	printf '\narm_64bit=1\nhdmi_force_hotplug=1\nhdmi_group=1\nhdmi_mode=16\nhdmi_drive=2\n' \
+		| cat config.txt - | mcopy -o -i $@.boot - ::/config.txt
+endef
+
+define Build/boot-rpi3-fixups
+	# The shared Morse distroconfig is written for the Pi 4. Two of its entries
+	# are wrong on a Pi 3, and one of them corrupts memory:
+	#
+	#   ramoops - the overlay sets #address-cells=2 on the shared
+	#     /reserved-memory node, but the Pi 3 DT declares that node with
+	#     #address-cells=1. Changing it re-interprets the reg of every sibling,
+	#     linux,cma included, so CMA is placed at a bogus address and every DMA
+	#     user breaks. The SD controller is one of them, which shows up as read
+	#     AND write I/O errors on mmcblk0p2 with perfectly healthy media.
+	#     BCM2711 already declares that node with 2 address cells, which is why
+	#     the Pi 4 EKH01 profiles never hit this.
+	#
+	#   uart5 - does not exist on BCM2837; the overlay just fails to apply.
+	mtype -i $@.boot ::distroconfig.txt \
+		| sed -e '/^dtoverlay=ramoops$$/d' -e '/^dtoverlay=uart5$$/d' \
+		| mcopy -o -i $@.boot - ::/distroconfig.txt
+endef
+
 define Build/sdcard-img
 	SIGNATURE="$(IMG_PART_SIGNATURE)" \
 	./gen_rpi_sdcard_img.sh $@ $@.boot $(IMAGE_ROOTFS) \
@@ -321,6 +355,29 @@ define Device/morse_mm6108-ekh01-spi
 endef
 ifeq ($(SUBTARGET),bcm2711)
   TARGET_DEVICES += morse_mm6108-ekh01-spi
+endif
+
+# Raspberry Pi 3 with the Seeed Studio WM6108 HaLow HAT (MM6108-based).
+# Reuses the ekh01 distroconfig machinery but boots via the Pi 3 (bcm2710)
+# firmware files and loads the wm6108-* overlays (different GPIO pinout).
+define Device/morse_wm6108-rpi3-spi
+  $(Device/rpi-3)
+  SYSINFO_BOARD_NAME := morse,wm6108-rpi3-spi
+  DEVICE_VENDOR := MorseMicro
+  DEVICE_MODEL := WM6108-RPI3
+  DEVICE_VARIANT := SPI
+  SYSINFO_MODEL := $$(DEVICE_VENDOR) $$(DEVICE_MODEL) ($$(DEVICE_VARIANT))
+  SUPPORTED_DEVICES := morse,wm6108-rpi3-spi raspberrypi,3-model-b raspberrypi,3-model-b-plus
+  # remove the factory image (causes confusion)
+  IMAGES := sysupgrade.img.gz
+  # Simplify by removing board and OpenWRT version.
+  IMAGE_PREFIX = $$(VERSION_DIST_SANITIZED)-$$(IMG_PREFIX_VERCODE)$$(IMG_PREFIX_EXTRA)$$(call sanitize,$$(DEVICE_MODEL)-$$(DEVICE_VARIANT))
+  DEVICE_IMG_NAME = $$(IMAGE_PREFIX)-$$(1)-$$(2)
+  DISTROCONFIG_EXTRA := wm6108-spi
+  IMAGE/sysupgrade.img.gz := boot-common | boot-2708 | boot-arm64 | boot-ekh01 | boot-rpi3-fixups | sdcard-img | gzip | append-metadata
+endef
+ifeq ($(SUBTARGET),bcm2710)
+  TARGET_DEVICES += morse_wm6108-rpi3-spi
 endif
 
 $(eval $(call BuildImage))
