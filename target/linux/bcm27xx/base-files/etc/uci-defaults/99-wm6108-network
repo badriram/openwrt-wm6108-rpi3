@@ -1,0 +1,29 @@
+. /lib/functions.sh
+
+[ "$(board_name)" = "morse,wm6108-rpi3-spi" ] || exit 0
+
+# This board is intended as a transparent bridge between the wired network and
+# the HaLow radio, so it should take an address from the existing router rather
+# than serving one of its own. config_generate always makes 'lan' a bridge so
+# wireless can join it, and the default Morse wireless config puts the HaLow
+# interface on 'lan' -- so br-lan already spans eth0 and wlh0.
+lan_dev="$(uci -q get network.lan.device)"
+[ -n "$lan_dev" ] || lan_dev="br-lan"
+
+# A fixed rescue address stays on the bridge alongside the DHCP lease: this
+# build sets CONFIG_TARGET_PREINIT_DISABLE_FAILSAFE, so without it a DHCP
+# failure would leave no way in except a serial console.
+uci -q batch <<EOF
+set network.lan.proto='dhcp'
+delete network.lan.ipaddr
+delete network.lan.netmask
+delete network.lan.gateway
+set network.wm6108_rescue='interface'
+set network.wm6108_rescue.device='$lan_dev'
+set network.wm6108_rescue.proto='static'
+set network.wm6108_rescue.ipaddr='10.42.0.1'
+set network.wm6108_rescue.netmask='255.255.255.0'
+set dhcp.lan.ignore='1'
+EOF
+
+exit 0
