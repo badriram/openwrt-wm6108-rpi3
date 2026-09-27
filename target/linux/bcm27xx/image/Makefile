@@ -73,6 +73,15 @@ define Build/boot-morse-distroconfig
 
 endef
 
+define Build/boot-arm64
+	# arm_64bit is consumed by bootcode.bin, which does NOT process the
+	# 'include' directive, so unlike everything else we set it cannot live in
+	# distroconfig.txt and has to be written into config.txt itself.
+	# BCM2837 defaults arm_64bit=0 and looks for a 32-bit kernel7.img rather
+	# than our aarch64 kernel8.img; BCM2711/BCM2712 already default to 1.
+	printf '\narm_64bit=1\n' | cat config.txt - | mcopy -o -i $@.boot - ::/config.txt
+endef
+
 define Build/sdcard-img
 	SIGNATURE="$(IMG_PART_SIGNATURE)" \
 	./gen_rpi_sdcard_img.sh $@ $@.boot $(IMAGE_ROOTFS) \
@@ -324,6 +333,30 @@ define Device/morse_mm6108-ekh01-spi
 endef
 ifeq ($(SUBTARGET),bcm2711)
   TARGET_DEVICES += morse_mm6108-ekh01-spi
+endif
+
+# Raspberry Pi 3 with the Seeed Studio WM6108 HaLow HAT (MM6108-based).
+# Reuses the ekh01 distroconfig machinery but boots via the Pi 3 (bcm2710)
+# firmware files and loads the wm6108-* overlays (different GPIO pinout).
+define Device/morse_wm6108-rpi3-spi
+  $(Device/rpi-3)
+  SYSINFO_BOARD_NAME := morse,wm6108-rpi3-spi
+  DEVICE_VENDOR := MorseMicro
+  DEVICE_MODEL := WM6108-RPI3
+  DEVICE_VARIANT := SPI
+  SYSINFO_MODEL := $$(DEVICE_VENDOR) $$(DEVICE_MODEL) ($$(DEVICE_VARIANT))
+  SUPPORTED_DEVICES := morse,wm6108-rpi3-spi raspberrypi,3-model-b raspberrypi,3-model-b-plus
+  # remove the factory image (causes confusion)
+  IMAGES := sysupgrade.img.gz
+  # Simplify by removing board and OpenWRT version.
+  IMAGE_PREFIX = $$(VERSION_DIST_SANITIZED)-$$(IMG_PREFIX_VERCODE)$$(IMG_PREFIX_EXTRA)$$(call sanitize,$$(DEVICE_MODEL)-$$(DEVICE_VARIANT))
+  DEVICE_IMG_NAME = $$(IMAGE_PREFIX)-$$(1)-$$(2)
+  DISTROCONFIG_DIR := wm6108
+  DISTROCONFIG_EXTRA := spi
+  IMAGE/sysupgrade.img.gz := boot-common | boot-2708 | boot-arm64 | boot-morse-distroconfig | sdcard-img | gzip | append-metadata
+endef
+ifeq ($(SUBTARGET),bcm2710)
+  TARGET_DEVICES += morse_wm6108-rpi3-spi
 endif
 
 $(eval $(call BuildImage))

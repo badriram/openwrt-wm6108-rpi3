@@ -1,0 +1,3 @@
+dtoverlay=wm6108-ps
+dtparam=spi=on
+dtoverlay=wm6108-spi
