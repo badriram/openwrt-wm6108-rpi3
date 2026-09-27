@@ -6,7 +6,7 @@
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/image.mk
 
-DEVICE_VARS += SYSINFO_MODEL SYSINFO_BOARD_NAME DISTROCONFIG_EXTRA
+DEVICE_VARS += SYSINFO_MODEL SYSINFO_BOARD_NAME DISTROCONFIG_EXTRA DISTROCONFIG_DIR
 
 FAT32_BLOCK_SIZE=1024
 FAT32_BLOCKS=$(shell echo $$(($(CONFIG_TARGET_KERNEL_PARTSIZE)*1024*1024/$(FAT32_BLOCK_SIZE))))
@@ -56,8 +56,8 @@ define Build/boot-2711
 	mcopy -i $@.boot $(KDIR)/fixup4x.dat ::
 endef
 
-define Build/boot-ekh01
-	# Put ekh01 model info into device tree (picked up by 01_sysinfo).
+define Build/boot-morse-distroconfig
+	# Put the board model info into the device tree (picked up by 01_sysinfo).
 	# This uses a custom overlay which accepts parameters (via RPI's __overrides__ mechanism),
 	# and writes those parameters into the root of the device tree (as sysinfo-model
 	# and sysinfo-board-name).
@@ -65,9 +65,11 @@ define Build/boot-ekh01
 	# (i.e. they only differ in /boot).
 	# We can't easily use /boot directly because that's not mounted early in the preinit process.
 	# As well as this, we have a custom DISTROCONFIG_EXTRA section which is used to define
-	# the necessary SPI/SDIO overlays for the product.
+	# the necessary SPI/SDIO overlays for the product. DISTROCONFIG_DIR selects which
+	# boards/ directory the two files come from, so a board that is not an ekh01
+	# can supply its own base distroconfig rather than inheriting ekh01's.
 
-	echo -e '\ndtoverlay=sysinfo,board-name="$(SYSINFO_BOARD_NAME)",model="$(SYSINFO_MODEL)"' | cat boards/ekh01/distroconfig.txt boards/ekh01/distroconfig-$(DISTROCONFIG_EXTRA).txt - | mcopy -o -i $@.boot - ::/distroconfig.txt
+	echo -e '\ndtoverlay=sysinfo,board-name="$(SYSINFO_BOARD_NAME)",model="$(SYSINFO_MODEL)"' | cat boards/$(DISTROCONFIG_DIR)/distroconfig.txt boards/$(DISTROCONFIG_DIR)/distroconfig-$(DISTROCONFIG_EXTRA).txt - | mcopy -o -i $@.boot - ::/distroconfig.txt
 
 endef
 
@@ -264,6 +266,7 @@ endif
 
 define Device/morse_ekh01_base
   $(Device/rpi-4)
+  DISTROCONFIG_DIR := ekh01
   SYSINFO_BOARD_NAME := $(subst _,$(comma),$(1))
   SUPPORTED_DEVICES := $$(SYSINFO_BOARD_NAME)
   DEVICE_VENDOR := MorseMicro
@@ -272,8 +275,8 @@ define Device/morse_ekh01_base
   # Simplify by removing board and OpenWRT version.
   IMAGE_PREFIX = $$(VERSION_DIST_SANITIZED)-$$(IMG_PREFIX_VERCODE)$$(IMG_PREFIX_EXTRA)$$(call sanitize,$$(DEVICE_MODEL)-$$(DEVICE_VARIANT))
   DEVICE_IMG_NAME = $$(IMAGE_PREFIX)-$$(1)-$$(2)
-  IMAGE/sysupgrade.img.gz := boot-common | boot-2711 | boot-ekh01 | sdcard-img | gzip | append-metadata
-  IMAGE/factory.img.gz := boot-common | boot-2711 | boot-ekh01 | sdcard-img | gzip
+  IMAGE/sysupgrade.img.gz := boot-common | boot-2711 | boot-morse-distroconfig | sdcard-img | gzip | append-metadata
+  IMAGE/factory.img.gz := boot-common | boot-2711 | boot-morse-distroconfig | sdcard-img | gzip
 endef
 
 define Device/morse_mm6108-ekh01-sdio
