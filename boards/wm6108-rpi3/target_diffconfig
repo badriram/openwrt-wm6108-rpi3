@@ -14,3 +14,9 @@ CONFIG_PACKAGE_netifd-morse=y
 CONFIG_PACKAGE_morse-fw-6108=y
 
 CONFIG_TARGET_ROOTFS_PARTSIZE=300
+
+# Images built from this tree are not signed by the Morse Micro Root Signing
+# CA, and morse-firmware-sign installs a /lib/upgrade override that rejects
+# anything it cannot verify against that CA -- which makes sysupgrade (and the
+# LuCI flash page) refuse our own builds with an openssl CMS parse error.
+CONFIG_PACKAGE_morse-firmware-sign=n
