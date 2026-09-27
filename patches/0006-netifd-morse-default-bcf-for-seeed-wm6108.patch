@@ -1,0 +1,13 @@
+--- a/feeds/morse/essentials/netifd-morse/lib/wifi/morse.sh	2026-09-26 13:41:21.084531562 -0500
++++ b/feeds/morse/essentials/netifd-morse/lib/wifi/morse.sh	2026-09-26 13:41:25.272097129 -0500
+@@ -107,6 +107,10 @@
+ 		# do not have OTP bits burnt.
+ 		if [ "$board_type" -eq 0 ] || [ "$board" = morse,halowlink1 ] || [ "$board" = morse,halowlink2 ]; then
+ 			case "$board" in
++				morse,wm6108-rpi3-spi)
++					# Seeed Studio WM6108 HAT (Quectel FGH100M-H module)
++					bcf=bcf_fgh100mhaamd.bin
++				;;
+ 				morse,ekh04v6)
+ 					bcf=bcf_ekh04_v6.bin
+ 				;;
