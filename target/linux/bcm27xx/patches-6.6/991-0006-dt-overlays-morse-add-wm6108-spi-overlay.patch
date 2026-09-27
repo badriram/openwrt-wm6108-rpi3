@@ -1,0 +1,108 @@
+diff -urN a/arch/arm/boot/dts/overlays/wm6108-ps-overlay.dts b/arch/arm/boot/dts/overlays/wm6108-ps-overlay.dts
+--- linux-6.6.110.orig/arch/arm/boot/dts/overlays/wm6108-ps-overlay.dts	1969-12-31 18:00:00.000000000 -0600
++++ linux-6.6.110/arch/arm/boot/dts/overlays/wm6108-ps-overlay.dts	2026-09-26 13:37:32.009890419 -0500
+@@ -0,0 +1,43 @@
++/dts-v1/;
++/plugin/;
++
++/* Powersave/reset pin configuration for the Seeed Studio WM6108 HaLow HAT.
++ * Pin mapping (differs from the MM6108-EKH01):
++ *   Reset  = GPIO17, Wakeup = GPIO23, Busy = GPIO24, SPI IRQ = GPIO5
++ */
++/ {
++	compatible = "brcm,bcm2835", "brcm,bcm2836", "brcm,bcm2837", "brcm,bcm2708", "brcm,bcm2709", "brcm,bcm2711";
++
++	fragment@0 {
++		target = <&gpio>;
++		__overlay__ {
++			status = "okay";
++
++			gpio_mm_ps: gpio_mm_ps {
++				mm-async-wakeup24-high {
++					pins = "gpio24";
++					function = "gpio_in";
++					bias-pull-down;
++					output-high;
++				};
++			};
++
++			gpio_mm_reset: gpio_mm_reset {
++				mm-reset17-high {
++					pins = "gpio17";
++					function = "gpio_out";
++					bias-pull-up;
++					output-high;
++				};
++			};
++		};
++	};
++
++	fragment@1 {
++		target = <&leds>;
++		__overlay__ {
++			pinctrl-names = "default";
++			pinctrl-0 = <&gpio_mm_ps &gpio_mm_reset>;
++		};
++	};
++};
+diff -urN a/arch/arm/boot/dts/overlays/wm6108-spi-overlay.dts b/arch/arm/boot/dts/overlays/wm6108-spi-overlay.dts
+--- linux-6.6.110.orig/arch/arm/boot/dts/overlays/wm6108-spi-overlay.dts	1969-12-31 18:00:00.000000000 -0600
++++ linux-6.6.110/arch/arm/boot/dts/overlays/wm6108-spi-overlay.dts	2026-09-26 13:37:39.004956593 -0500
+@@ -0,0 +1,57 @@
++/dts-v1/;
++/plugin/;
++
++/* SPI overlay for the Seeed Studio WM6108 HaLow HAT (MM6108-based).
++ * Pin mapping (differs from the MM6108-EKH01):
++ *   Reset  = GPIO17, Wakeup = GPIO23, Busy = GPIO24, SPI IRQ = GPIO5
++ */
++/ {
++	compatible = "brcm,bcm2835", "brcm,bcm2836", "brcm,bcm2837", "brcm,bcm2708", "brcm,bcm2709", "brcm,bcm2711";
++
++	fragment@0 {
++		target = <&spi0>;
++		frag0: __overlay__ {
++			pinctrl-0 = <&spi0_pins &spi0_cs_pins>;
++			cs-gpios = <&gpio 8 1>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++			status = "okay";
++
++			mm6108: mm6108@0 {
++				compatible = "morse,mm610x-spi";
++				reg = <0>;	/* CE0 */
++				reset-gpios = <&gpio 17 1>;
++				power-gpios = <&gpio 23 0>,
++				              <&gpio 24 0>;
++				spi-irq-gpios = <&gpio 5 0>;
++				spi-max-frequency = <50000000>;
++				status = "okay";
++			};
++
++			spidev0: spidev@0 {
++				reg = <0>;	/* CE0 */
++				status = "disabled";
++			};
++
++			spidev1: spidev@1 {
++				reg = <1>;	/* CE1 */
++				status = "disabled";
++			};
++		};
++	};
++
++	fragment@1 {
++		target = <&gpio>;
++		__overlay__ {
++			spi0_cs_pins: spi0_cs_pins {
++				brcm,pins = <8>;
++				brcm,function = <1>; /* BCM2835_FSEL_GPIO_OUT */
++				brcm,pull = <2>; 	 /* SET SPI PINS AS PULL HIGH */
++			};
++			spi0_pins: spi0_pins {
++				brcm,pull = <2 2 2>; /* SET SPI PINS AS PULL HIGH */
++			};
++
++		};
++	};
++};

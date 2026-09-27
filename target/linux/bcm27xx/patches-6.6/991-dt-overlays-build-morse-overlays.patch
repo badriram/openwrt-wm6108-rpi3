@@ -2,7 +2,7 @@ Index: linux-6.6.110/arch/arm/boot/dts/overlays/Makefile
 ===================================================================
 --- linux-6.6.110.orig/arch/arm/boot/dts/overlays/Makefile
 +++ linux-6.6.110/arch/arm/boot/dts/overlays/Makefile
-@@ -184,7 +184,11 @@ dtbo-$(CONFIG_ARCH_BCM2835) += \
+@@ -184,7 +184,13 @@ dtbo-$(CONFIG_ARCH_BCM2835) += \
  	miniuart-bt.dtbo \
  	mipi-dbi-spi.dtbo \
  	mlx90640.dtbo \
@@ -11,6 +11,8 @@ Index: linux-6.6.110/arch/arm/boot/dts/overlays/Makefile
 +	morse-ps.dtbo \
 +	mm610x-spi.dtbo \
 +	mm810x-spi.dtbo \
++	wm6108-ps.dtbo \
++	wm6108-spi.dtbo \
  	mz61581.dtbo \
  	ov2311.dtbo \
  	ov5647.dtbo \
