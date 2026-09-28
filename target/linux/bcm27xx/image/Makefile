@@ -8,6 +8,10 @@ include $(INCLUDE_DIR)/image.mk
 
 DEVICE_VARS += SYSINFO_MODEL SYSINFO_BOARD_NAME DISTROCONFIG_EXTRA DISTROCONFIG_DIR
 
+# Live source revision (e.g. r29304-5abe986ab9). REVISION itself is only
+# defined in toplevel.mk, so recompute it here.
+MORSE_SRC_REVISION := $(shell $(TOPDIR)/scripts/getver.sh 2>/dev/null)
+
 FAT32_BLOCK_SIZE=1024
 FAT32_BLOCKS=$(shell echo $$(($(CONFIG_TARGET_KERNEL_PARTSIZE)*1024*1024/$(FAT32_BLOCK_SIZE))))
 
@@ -348,8 +352,11 @@ define Device/morse_wm6108-rpi3-spi
   SUPPORTED_DEVICES := morse,wm6108-rpi3-spi raspberrypi,3-model-b raspberrypi,3-model-b-plus
   # remove the factory image (causes confusion)
   IMAGES := sysupgrade.img.gz
-  # Simplify by removing board and OpenWRT version.
-  IMAGE_PREFIX = $$(VERSION_DIST_SANITIZED)-$$(IMG_PREFIX_VERCODE)$$(IMG_PREFIX_EXTRA)$$(call sanitize,$$(DEVICE_MODEL)-$$(DEVICE_VARIANT))
+  # Name images by the live source revision rather than VERSION_CODE.
+  # morse_setup.sh freezes VERSION_CODE into .config and only refreshes it when
+  # re-run, so rebuilding a moving branch otherwise produces several different
+  # images all sharing one filename, which makes flashing the wrong one easy.
+  IMAGE_PREFIX = $$(VERSION_DIST_SANITIZED)-$(MORSE_SRC_REVISION)-$$(IMG_PREFIX_EXTRA)$$(call sanitize,$$(DEVICE_MODEL)-$$(DEVICE_VARIANT))
   DEVICE_IMG_NAME = $$(IMAGE_PREFIX)-$$(1)-$$(2)
   DISTROCONFIG_DIR := wm6108
   DISTROCONFIG_EXTRA := spi
